@@ -4,6 +4,9 @@ Shader "Unlit/SimpleTest"
     Properties
     {
         _MainTex ("Main Tex", 2D) = "white" {}
+        X("X",Float)=1
+        Y("Y",Float)=1
+        Z("Z",Float)=1
     }
     SubShader
     {
@@ -15,11 +18,16 @@ Shader "Unlit/SimpleTest"
             Tags { "LightMode" = "UniversalForward" }
 
             HLSLPROGRAM
+                        
             #pragma vertex vert
             #pragma fragment frag
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
+            float X;
+            float Y;
+            float Z;
+            
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -40,7 +48,8 @@ Shader "Unlit/SimpleTest"
             half4 frag(Varyings input) : SV_Target
             {
                 // 直接返回红色
-                return half4(1, 0, 0, 1);
+                float res=clamp(X,Y,Z);
+                return half4(res.xxx, 1);
             }
             ENDHLSL
         }

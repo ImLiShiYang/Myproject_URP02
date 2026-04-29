@@ -94,6 +94,9 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - X: 0.6
+    - Y: 0.56
+    - Z: 0.91
     - _AlphaClip: 0
     - _AlphaToMask: 0
     - _Blend: 0
