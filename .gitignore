@@ -1,0 +1,12 @@
+.idea/
+.vscode/
+Library/
+Temp/
+Logs/
+UserSettings/
+*.sln
+*.csproj
+*.sln
+*.userprefs
+*.unityproj
+*.DS Store
