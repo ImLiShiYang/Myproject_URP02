@@ -197,17 +197,17 @@ public class CustomDepthTextureFeature : ScriptableRendererFeature
     private class CustomDepthPass : ScriptableRenderPass
     {
         
-        private static readonly int WorldToLightUVMatrixID =
-            Shader.PropertyToID("_WorldToLightUVMatrix");
+        private static readonly int WorldToLightUVMatrixID =Shader.PropertyToID("_WorldToLightUVMatrix");
+            
 
-        private static readonly int WorldToLightViewMatrixID =
-            Shader.PropertyToID("_WorldToLightViewMatrix");
+        private static readonly int WorldToLightViewMatrixID =Shader.PropertyToID("_WorldToLightViewMatrix");
+            
 
-        private static readonly int CustomLightDepthParamsID =
-            Shader.PropertyToID("_CustomLightDepthParams");
+        private static readonly int CustomLightDepthParamsID =Shader.PropertyToID("_CustomLightDepthParams");
+            
         
-        private static readonly int CustomDepthTextureTexelSizeID =
-            Shader.PropertyToID("_MyCustomDepthTexture_TexelSize");
+        private static readonly int CustomDepthTextureTexelSizeID =Shader.PropertyToID("_MyCustomDepthTexture_TexelSize");
+            
         
         /// <summary>
         /// 保存从 Feature 传进来的配置。

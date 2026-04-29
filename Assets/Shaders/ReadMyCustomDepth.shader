@@ -12,6 +12,9 @@ Shader "Unlit/ReadMyCustomDepth_Shadow_Fixed"
         
 //        _FlipShadowUVX("Flip Shadow UV X", Float) = 0
 //        _FlipShadowUVY("Flip Shadow UV Y", Float) = 0
+        
+        _PCFRadius("PCF Radius", Range(0, 3)) = 1
+        [Toggle] _UsePCF("Use PCF", Float) = 1
     }
 
     SubShader
@@ -49,6 +52,8 @@ Shader "Unlit/ReadMyCustomDepth_Shadow_Fixed"
                 float _ShadowStrength;
                 // float _FlipShadowUVX;
                 // float _FlipShadowUVY;
+                float _PCFRadius;
+                float _UsePCF;
             CBUFFER_END
 
             struct Attributes
@@ -73,6 +78,45 @@ Shader "Unlit/ReadMyCustomDepth_Shadow_Fixed"
                 output.positionWS = vertexInput.positionWS;
 
                 return output;
+            }
+            
+            float SampleShadowTap(float2 uv, float receiverDepth, float bias)
+            {
+                if (uv.x < 0.0 || uv.x > 1.0 ||uv.y < 0.0 || uv.y > 1.0)
+                {
+                    return 0.0;
+                }
+
+                float d = SAMPLE_TEXTURE2D(_MyCustomDepthTexture,sampler_MyCustomDepthTexture,uv).r;
+                
+                // sampledDepth 接近 1 代表没有 caster，视为亮
+                if (d >= 0.999)
+                {
+                    return 0.0;
+                }
+
+                return receiverDepth > d + bias ? 1.0 : 0.0;
+            }
+
+            float SampleShadowPCF(float2 uv, float receiverDepth, float bias)
+            {
+                float2 texelSize = _MyCustomDepthTexture_TexelSize.xy * _PCFRadius;
+
+                float shadow = 0.0;
+
+                shadow += SampleShadowTap(uv + texelSize * float2(-1, -1), receiverDepth, bias);
+                shadow += SampleShadowTap(uv + texelSize * float2( 0, -1), receiverDepth, bias);
+                shadow += SampleShadowTap(uv + texelSize * float2( 1, -1), receiverDepth, bias);
+
+                shadow += SampleShadowTap(uv + texelSize * float2(-1,  0), receiverDepth, bias);
+                shadow += SampleShadowTap(uv + texelSize * float2( 0,  0), receiverDepth, bias);
+                shadow += SampleShadowTap(uv + texelSize * float2( 1,  0), receiverDepth, bias);
+
+                shadow += SampleShadowTap(uv + texelSize * float2(-1,  1), receiverDepth, bias);
+                shadow += SampleShadowTap(uv + texelSize * float2( 0,  1), receiverDepth, bias);
+                shadow += SampleShadowTap(uv + texelSize * float2( 1,  1), receiverDepth, bias);
+
+                return shadow / 9.0;
             }
 
             half4 Frag(Varyings input) : SV_Target
@@ -170,14 +214,23 @@ Shader "Unlit/ReadMyCustomDepth_Shadow_Fixed"
                 }
 
                 // 4: Shadow Compare
-                if (!hasCaster)
+
+                float shadow;
+                if (_UsePCF > 0.5 && _PCFRadius > 0.0)
                 {
-                    return half4(_BaseColor.rgb, _BaseColor.a);
+                    shadow = SampleShadowPCF(lightUV,receiverDepth,_DepthBias);
                 }
+                else
+                {
+                    // 关闭 PCF：只做一次普通 shadow map 深度比较
+                    shadow = SampleShadowTap(lightUV,receiverDepth,_DepthBias);
+                    
+                }
+                
+                
+                // float inShadow = receiverDepth > sampledDepth + _DepthBias? 1.0: 0.0;
 
-                float inShadow = receiverDepth > sampledDepth + _DepthBias? 1.0: 0.0;
-
-                float shadowFactor = lerp(1.0,1.0 - _ShadowStrength,inShadow);
+                float shadowFactor = lerp(1.0,1.0 - _ShadowStrength,shadow);
 
                 half3 finalColor = _BaseColor.rgb * shadowFactor;
 
