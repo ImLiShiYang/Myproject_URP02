@@ -582,7 +582,7 @@ Transform:
   m_GameObject: {fileID: 482456141}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 6.39, y: 1.7, z: 34.11}
+  m_LocalPosition: {x: 9.82, y: 1.7, z: 24.194}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5528,15 +5528,30 @@ MonoBehaviour:
   toeBlend: 0.6
   footprintPrefab: {fileID: 4208288544586900507, guid: d0242e11af7af394488889ebcdf0654d,
     type: 3}
-  leftFootTexture: {fileID: 2800000, guid: 33f51bb933da4bc409b8ee3ccfd9d1d7, type: 3}
-  rightFootTexture: {fileID: 2800000, guid: ac17c825a80af3144b457535b588a266, type: 3}
+  leftFootTexture: {fileID: 2800000, guid: 5f818ecc664f406499f2d25fc65f7327, type: 3}
+  rightFootTexture: {fileID: 2800000, guid: 33238b55b4ed05b44b0ce8395bc57ac4, type: 3}
   leftFootNormalTexture: {fileID: 2800000, guid: 3c1951b4c510f7c4d95687d2c3a79fd7,
     type: 3}
   rightFootNormalTexture: {fileID: 2800000, guid: 84dc0b30718f0f34990cccd16d5a1612,
     type: 3}
+  leftFootHeightTexture: {fileID: 2800000, guid: cc402ff1826695845830a597cf47c142,
+    type: 3}
+  rightFootHeightTexture: {fileID: 2800000, guid: fa033e65e39929546abb8fcbcb706a75,
+    type: 3}
   footprintOpacity: 0.968
   footprintEdgeFade: 0.008
   footprintNormalStrength: 1
+  footprintHeightGround: 0.5
+  footprintHeightContrast: 2.41
+  footprintInvertHeight: 0
+  footprintParallaxStrength: 0.2
+  footprintPOMMinSteps: 32
+  footprintPOMMaxSteps: 65
+  useBaseRGB: 1
+  ambientStrength: 0.25
+  diffuseStrength: 1
+  alphaFromPOM: 1
+  debugView: 0
   usePooling: 1
   footprintPool: {fileID: 1734255341}
   groundMask:

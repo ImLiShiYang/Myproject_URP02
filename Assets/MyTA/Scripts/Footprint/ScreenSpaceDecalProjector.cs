@@ -13,7 +13,7 @@ using UnityEngine;
 public class ScreenSpaceDecalProjector : MonoBehaviour
 {
     /// <summary>
-    /// 当前激活的贴花投射器（当前版本仅支持单个 decal）。
+    /// 当前激活的贴花投射器
     /// </summary>
     public static ScreenSpaceDecalProjector ActiveProjector;
     
@@ -62,8 +62,66 @@ public class ScreenSpaceDecalProjector : MonoBehaviour
         "1 = 法线效果最强。\n\n" +
         "脚印建议 0.2 ~ 0.5，太大会像塑料凸起。"
     )]
-    [Range(0f, 1f)]
+    [Range(0f, 3f)]
     public float normalStrength = 0.35f;
+    
+    [Header("Decal Height / POM")]
+    [Tooltip("贴花高度图。用于 POM / 视差凹陷效果。")]
+    public Texture2D decalHeightTexture;
+
+    [Tooltip(
+        "高度图的地面基准值。\n" +
+        "通常 0.5 表示无偏移。\n" +
+        "低于该值可理解为凹陷，高于该值可理解为凸起。"
+    )]
+    [Range(0f, 1f)]
+    public float heightGround = 0.5f;
+
+    [Tooltip(
+        "高度对比度。\n" +
+        "值越大，高度图黑白差异越明显。"
+    )]
+    [Range(0f, 8f)]
+    public float heightContrast = 1.0f;
+
+    [Tooltip(
+        "是否反转高度图。\n" +
+        "0 = 不反转。\n" +
+        "1 = 反转。"
+    )]
+    [Range(0f, 1f)]
+    public float invertHeight = 0.0f;
+
+    [Tooltip(
+        "POM 视差强度。\n" +
+        "正负会影响凹陷方向。"
+    )]
+    [Range(-0.2f, 0.2f)]
+    public float parallaxStrength = 0.05f;
+
+    [Tooltip("POM 最小步数。")]
+    [Range(1, 32)]
+    public int pomMinSteps = 8;
+
+    [Tooltip("POM 最大步数。")]
+    [Range(1, 96)]
+    public int pomMaxSteps = 32;
+    
+    [Header("Merged POM Shading")]
+    [Range(0f, 1f)]
+    public float useBaseRGB = 1f;
+
+    [Range(0f, 1f)]
+    public float ambientStrength = 0.25f;
+
+    [Range(0f, 2f)]
+    public float diffuseStrength = 1.0f;
+
+    [Range(0f, 1f)]
+    public float alphaFromPOM = 1f;
+
+    [Range(0f, 2f)]
+    public float debugView = 0f;
 
     /// <summary>
     /// 贴花颜色，默认为白色（不额外改变贴图颜色）。
@@ -185,6 +243,8 @@ public class ScreenSpaceDecalProjector : MonoBehaviour
         angleFade.x = Mathf.Clamp(angleFade.x, 0f, 180f);
         // 结束角度必须大于开始角度，加 0.001f 避免 smoothstep 边界重合导致计算不稳定
         angleFade.y = Mathf.Clamp(angleFade.y, angleFade.x + 0.001f, 180f);
+        
+        pomMaxSteps = Mathf.Max(pomMinSteps, pomMaxSteps);
     }
 
     /// <summary>

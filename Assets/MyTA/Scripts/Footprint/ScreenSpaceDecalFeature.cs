@@ -161,11 +161,25 @@ public class ScreenSpaceDecalFeature : ScriptableRendererFeature
         private static readonly int DecalDistanceFadeID = Shader.PropertyToID("_DecalDistanceFade");
         
         private static readonly int DecalNormalTextureID = Shader.PropertyToID("_DecalNormalTexture");
-        private static readonly int DecalNormalParamsID = Shader.PropertyToID("_DecalNormalParams");
+        private static readonly int NormalStrengthID = Shader.PropertyToID("_NormalStrength");
+        
+        private static readonly int DecalHeightTextureID = Shader.PropertyToID("_DecalHeightTexture");
+        private static readonly int HeightGroundID = Shader.PropertyToID("_HeightGround");
+        private static readonly int HeightContrastID = Shader.PropertyToID("_HeightContrast");
+        private static readonly int InvertHeightID = Shader.PropertyToID("_InvertHeight");
+        private static readonly int ParallaxStrengthID = Shader.PropertyToID("_ParallaxStrength");
+        private static readonly int POMMinStepsID = Shader.PropertyToID("_POMMinSteps");
+        private static readonly int POMMaxStepsID = Shader.PropertyToID("_POMMaxSteps");
 
         private static readonly int DecalTangentWSID = Shader.PropertyToID("_DecalTangentWS");
         private static readonly int DecalBitangentWSID = Shader.PropertyToID("_DecalBitangentWS");
         private static readonly int DecalNormalWSID = Shader.PropertyToID("_DecalNormalWS");
+        
+        private static readonly int UseBaseRGBID = Shader.PropertyToID("_UseBaseRGB");
+        private static readonly int AmbientStrengthID = Shader.PropertyToID("_AmbientStrength");
+        private static readonly int DiffuseStrengthID = Shader.PropertyToID("_DiffuseStrength");
+        private static readonly int AlphaFromPOMID = Shader.PropertyToID("_AlphaFromPOM");
+        private static readonly int DebugViewID = Shader.PropertyToID("_DebugView");
 
         // Renderer Feature 中的设置引用。
         private readonly Settings _settings;
@@ -294,10 +308,25 @@ public class ScreenSpaceDecalFeature : ScriptableRendererFeature
                     _propertyBlock.SetTexture(DecalNormalTextureID, projector.decalNormalTexture);
                 }
 
-                _propertyBlock.SetVector(
-                    DecalNormalParamsID,
-                    new Vector4(projector.normalStrength, 0f, 0f, 0f)
-                );
+                _propertyBlock.SetFloat(NormalStrengthID, projector.normalStrength);
+                
+                if (projector.decalHeightTexture != null)
+                {
+                    _propertyBlock.SetTexture(DecalHeightTextureID, projector.decalHeightTexture);
+                }
+
+                _propertyBlock.SetFloat(HeightGroundID, projector.heightGround);
+                _propertyBlock.SetFloat(HeightContrastID, projector.heightContrast);
+                _propertyBlock.SetFloat(InvertHeightID, projector.invertHeight);
+                _propertyBlock.SetFloat(ParallaxStrengthID, projector.parallaxStrength);
+                _propertyBlock.SetFloat(POMMinStepsID, projector.pomMinSteps);
+                _propertyBlock.SetFloat(POMMaxStepsID, projector.pomMaxSteps);
+                
+                _propertyBlock.SetFloat(UseBaseRGBID, projector.useBaseRGB);
+                _propertyBlock.SetFloat(AmbientStrengthID, projector.ambientStrength);
+                _propertyBlock.SetFloat(DiffuseStrengthID, projector.diffuseStrength);
+                _propertyBlock.SetFloat(AlphaFromPOMID, projector.alphaFromPOM);
+                _propertyBlock.SetFloat(DebugViewID, projector.debugView);
                 
                 Transform projectorTransform = projector.transform;
 

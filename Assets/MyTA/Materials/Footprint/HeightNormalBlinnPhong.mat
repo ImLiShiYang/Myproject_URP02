@@ -126,7 +126,7 @@ Material:
     - _DepressionDarkness: 0.65
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
-    - _DiffuseStrength: 0.93
+    - _DiffuseStrength: 1.01
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
@@ -147,9 +147,9 @@ Material:
     - _NormalXYSign: 1
     - _OcclusionStrength: 1
     - _POMMaxSteps: 64
-    - _POMMinSteps: 16
+    - _POMMinSteps: 32
     - _Parallax: 0.005
-    - _ParallaxStrength: 0.08
+    - _ParallaxStrength: 0.2
     - _QueueOffset: 0
     - _ReceiveShadows: 1
     - _RimColorVisibility: 1

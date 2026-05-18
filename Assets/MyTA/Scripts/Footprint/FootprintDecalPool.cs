@@ -154,7 +154,53 @@ public class FootprintDecalPool : MonoBehaviour
     /// 注意：
     /// 这里不是 Instantiate，而是从池里拿一个对象出来复用。
     /// </summary>
-    public ScreenSpaceDecalProjector SpawnFootprint(Vector3 position, Quaternion rotation,Texture2D texture,Texture2D normalTexture,float normalStrength,
+    public ScreenSpaceDecalProjector SpawnFootprint(
+        Vector3 position,
+        Quaternion rotation,
+        Texture2D texture,
+        Texture2D normalTexture,
+        float normalStrength,
+        Vector3 size,
+        Vector3 pivot,
+        float opacity,
+        float edgeFade,
+        float visibleTime,
+        float fadeTime)
+    {
+        return SpawnFootprint(
+            position,
+            rotation,
+            texture,
+            normalTexture,
+            normalStrength,
+
+            null,
+            0.5f,
+            1.0f,
+            0.0f,
+            0.05f,
+            8,
+            32,
+
+            1.0f,
+            0.25f,
+            1.0f,
+            1.0f,
+            0.0f,
+
+            size,
+            pivot,
+            opacity,
+            edgeFade,
+            visibleTime,
+            fadeTime
+        );
+    }
+    
+    
+    public ScreenSpaceDecalProjector SpawnFootprint(Vector3 position,Quaternion rotation,Texture2D decalTexture,Texture2D normalTexture,float normalStrength,
+        Texture2D heightTexture,float heightGround,float heightContrast,float invertHeight,float parallaxStrength,int pomMinSteps,int pomMaxSteps,
+        float useBaseRGB,float ambientStrength,float diffuseStrength,float alphaFromPOM,float debugView,
         Vector3 size,Vector3 pivot,float opacity,float edgeFade,float visibleTime,float fadeTime)
     {
         if (footprintPrefab == null)
@@ -177,19 +223,33 @@ public class FootprintDecalPool : MonoBehaviour
         // ScreenSpaceDecalProjector.OnEnable 会把它加入 ActiveProjectors，
         // 这样 Render Feature 才会绘制它。
         projector.gameObject.SetActive(true);
-
-        // 设置位置和旋转
+        
         projector.transform.SetPositionAndRotation(position, rotation);
 
-        // 设置本次脚印的数据
-        projector.decalTexture = texture;
+        projector.decalTexture = decalTexture;
+
         projector.decalNormalTexture = normalTexture;
         projector.normalStrength = normalStrength;
+
+        projector.decalHeightTexture = heightTexture;
+        projector.heightGround = heightGround;
+        projector.heightContrast = heightContrast;
+        projector.invertHeight = invertHeight;
+        projector.parallaxStrength = parallaxStrength;
+        projector.pomMinSteps = pomMinSteps;
+        projector.pomMaxSteps = Mathf.Max(pomMinSteps, pomMaxSteps);
         
+        projector.useBaseRGB = useBaseRGB;
+        projector.ambientStrength = ambientStrength;
+        projector.diffuseStrength = diffuseStrength;
+        projector.alphaFromPOM = alphaFromPOM;
+        projector.debugView = debugView;
+
         projector.size = size;
         projector.pivot = pivot;
         projector.opacity = opacity;
         projector.edgeFade = edgeFade;
+        
 
         // 记录为正在使用
         pooled.IsActiveInPool = true;
@@ -197,7 +257,7 @@ public class FootprintDecalPool : MonoBehaviour
 
         // 开始生命周期：完整显示 → 淡出 → 回收到池
         pooled.PlayLifetime(visibleTime, fadeTime, opacity);
-
+        
         return projector;
     }
 
@@ -357,48 +417,118 @@ public class PooledFootprintDecal : MonoBehaviour
     }
 
     /// <summary>
-    /// 脚印生命周期：
-    /// 先完整显示，再逐渐淡出，最后回收到对象池。
+    /// 单个脚印的生命周期协程。
+    ///
+    /// 生命周期流程：
+    /// 1. 设置初始透明度
+    /// 2. 保持完整显示 visibleTime 秒
+    /// 3. 在 fadeTime 秒内逐渐淡出
+    /// 4. 淡出结束后通知对象池回收自己
+    ///
+    /// 注意：
+    /// 这个协程只负责控制 opacity 和回收。
+    /// 它不负责创建对象，也不负责真正销毁对象。
     /// </summary>
-    private IEnumerator LifetimeCoroutine(float visibleTime, float fadeTime, float Opacity)
+    /// <param name="visibleTime">
+    /// 脚印完整显示的时间。
+    /// 在这段时间内，脚印 opacity 保持不变。
+    /// </param>
+    /// <param name="fadeTime">
+    /// 脚印淡出时间。
+    /// 在这段时间内，opacity 从初始值逐渐变成 0。
+    /// </param>
+    /// <param name="opacity">
+    /// 脚印初始透明度。
+    /// 建议参数名用小写 opacity，避免和字段/类型命名风格混淆。
+    /// </param>
+    private IEnumerator LifetimeCoroutine(float visibleTime, float fadeTime, float opacity)
     {
+        // 如果 Projector 已经不存在，说明这个池对象状态异常。
+        // yield break 表示直接结束协程，不继续执行后面的逻辑。
         if (Projector == null)
             yield break;
 
-        Projector.opacity = Opacity;
+        // 设置脚印刚生成时的透明度。
+        // 例如 opacity = 0.6，那么脚印一开始就是 60% 强度。
+        Projector.opacity = opacity;
 
+        // ============================================================
+        // 1. 完整显示阶段
+        // ============================================================
+
+        // visibleTime > 0 时，让脚印保持当前 opacity 一段时间。
+        // WaitForSeconds 会暂停这个协程，但不会阻塞 Unity 主线程。
+        // 其他脚印、角色移动、渲染仍然正常执行。
         if (visibleTime > 0f)
         {
             yield return new WaitForSeconds(visibleTime);
         }
 
+        // ============================================================
+        // 2. 准备淡出
+        // ============================================================
+
+        // 记录淡出开始时的透明度。
+        // 这里不用直接用 opacity，是因为外部可能在 visibleTime 期间改过 Projector.opacity。
         float startOpacity = Projector.opacity;
+
+        // 淡出计时器。
+        // 从 0 开始，逐帧累加 Time.deltaTime。
         float timer = 0f;
 
+        // ============================================================
+        // 3. 淡出阶段
+        // ============================================================
+
+        // 如果 fadeTime <= 0，说明不需要渐变，直接让脚印消失。
         if (fadeTime <= 0f)
         {
             Projector.opacity = 0f;
         }
         else
         {
+            // 只要还没达到淡出总时间，就持续执行淡出。
             while (timer < fadeTime)
             {
+                // 淡出过程中，如果 Projector 被销毁或丢失，
+                // 直接结束协程，避免空引用报错。
                 if (Projector == null)
                     yield break;
 
+                // 累加当前帧经过的时间。
+                // Time.deltaTime 表示上一帧到这一帧经过了多少秒。
                 timer += Time.deltaTime;
 
+                // 把 timer / fadeTime 转成 0~1 的进度。
+                // t = 0：刚开始淡出
+                // t = 1：淡出结束
                 float t = Mathf.Clamp01(timer / fadeTime);
+
+                // 根据 t 在 startOpacity 和 0 之间插值。
+                // t 越接近 1，opacity 越接近 0。
                 Projector.opacity = Mathf.Lerp(startOpacity, 0f, t);
 
+                // 等待下一帧继续执行 while。
+                // 这就是“逐帧淡出”的关键。
                 yield return null;
             }
 
+            // while 结束后，强制归零。
+            // 避免因为浮点误差导致 opacity 还剩 0.00001 之类的残留。
             Projector.opacity = 0f;
         }
 
+        // ============================================================
+        // 4. 生命周期结束
+        // ============================================================
+
+        // 协程已经自然结束，把引用清空。
+        // 这样 StopLifetime() 后续就知道当前没有正在跑的生命周期协程。
         _lifetimeCoroutine = null;
 
+        // 通知对象池：这个脚印用完了，可以回收了。
+        // 注意：这里不是 Destroy。
+        // 对象池会把它从 _active 移除，SetActive(false)，再放回 _available。
         if (_pool != null)
         {
             _pool.Release(this);

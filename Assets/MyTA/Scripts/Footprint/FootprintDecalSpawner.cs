@@ -8,8 +8,7 @@ using UnityEditor;
 /// <summary>
 /// 基于角色真实脚骨骼生成脚印贴花。
 /// 
-/// 这个脚本不再根据角色中心移动距离生成脚印，
-/// 而是通过左脚 / 右脚骨骼的位置向下 Raycast，
+/// 通过左脚 / 右脚骨骼的位置向下 Raycast，
 /// 在脚真正落地的位置生成脚印。
 /// </summary>
 public class FootprintDecalSpawner : MonoBehaviour
@@ -78,6 +77,13 @@ public class FootprintDecalSpawner : MonoBehaviour
     [Tooltip("右脚脚印法线贴图，用来制造泥地凹陷 / 凸起边缘效果。")]
     public Texture2D rightFootNormalTexture;
     
+    [Tooltip("左脚脚印高度贴图。灰度图：0.5 = 原地面，低于 0.5 = 凹陷，高于 0.5 = 凸起。")]
+    public Texture2D leftFootHeightTexture;
+
+    [Tooltip("右脚脚印高度贴图。灰度图：0.5 = 原地面，低于 0.5 = 凹陷，高于 0.5 = 凸起。")]
+    public Texture2D rightFootHeightTexture;
+    
+    
 
     [Header("Footprint Visual")]
     [Tooltip(
@@ -108,9 +114,67 @@ public class FootprintDecalSpawner : MonoBehaviour
         "1 = 凹凸感最强。\n\n" +
         "湿地脚印建议 0.25 ~ 0.45。"
     )]
-    [Range(0f, 1f)]
+    [Range(0f, 3f)]
     public float footprintNormalStrength = 0.35f;
+    
+    [Header("Footprint Height / POM")]
+    [Tooltip(
+        "高度图的地面基准值。\n" +
+        "通常 0.5 表示无偏移。\n" +
+        "低于该值可以理解为凹陷，高于该值可以理解为凸起。"
+    )]
+    [Range(0f, 1f)]
+    public float footprintHeightGround = 0.5f;
 
+    [Tooltip(
+        "高度对比度。\n" +
+        "值越大，高度图黑白差异越明显。\n" +
+        "建议先用 1。"
+    )]
+    [Range(0f, 8f)]
+    public float footprintHeightContrast = 1.0f;
+
+    [Tooltip(
+        "是否反转高度图。\n" +
+        "0 = 不反转。\n" +
+        "1 = 反转。\n\n" +
+        "如果脚印看起来是凸出来的，可以改成 1 试试。"
+    )]
+    [Range(0f, 1f)]
+    public float footprintInvertHeight = 0.0f;
+
+    [Tooltip(
+        "POM 视差强度。\n" +
+        "正负会影响凹陷方向。\n" +
+        "湿泥脚印建议先用 0.03 ~ 0.06。"
+    )]
+    [Range(-0.2f, 0.2f)]
+    public float footprintParallaxStrength = 0.05f;
+
+    [Tooltip("POM 最小步数。")]
+    [Range(1, 32)]
+    public int footprintPOMMinSteps = 8;
+
+    [Tooltip("POM 最大步数。")]
+    [Range(1, 96)]
+    public int footprintPOMMaxSteps = 32;
+
+    
+    [Header("Merged POM Shading")]
+    [Range(0f, 1f)]
+    public float useBaseRGB = 1f;
+
+    [Range(0f, 1f)]
+    public float ambientStrength = 0.25f;
+
+    [Range(0f, 2f)]
+    public float diffuseStrength = 1.0f;
+
+    [Range(0f, 1f)]
+    public float alphaFromPOM = 1f;
+
+    [Range(0f, 2f)]
+    public float debugView = 0f;
 
     // ============================================================
     // Pooling
@@ -647,13 +711,40 @@ public class FootprintDecalSpawner : MonoBehaviour
         
         Texture2D footNormalTexture =footSide == DebugFootSide.Left ? leftFootNormalTexture: rightFootNormalTexture;
             
-               
+        Texture2D footHeightTexture =footSide == DebugFootSide.Left ? leftFootHeightTexture : rightFootHeightTexture;
+            
                 
         
         if (usePooling && footprintPool != null)
         {
-            footprintPool.SpawnFootprint(spawnPosition,spawnRotation,footTexture,footNormalTexture,footprintNormalStrength,currentFootprintSize,pivot,footprintOpacity,
-                footprintEdgeFade,footprintVisibleTime,footprintFadeTime);
+            footprintPool.SpawnFootprint(
+                spawnPosition,
+                spawnRotation,
+                footTexture,
+                footNormalTexture,
+                footprintNormalStrength,
+
+                footHeightTexture,
+                footprintHeightGround,
+                footprintHeightContrast,
+                footprintInvertHeight,
+                footprintParallaxStrength,
+                footprintPOMMinSteps,
+                footprintPOMMaxSteps,
+
+                useBaseRGB,
+                ambientStrength,
+                diffuseStrength,
+                alphaFromPOM,
+                debugView,
+
+                currentFootprintSize,
+                pivot,
+                footprintOpacity,
+                footprintEdgeFade,
+                footprintVisibleTime,
+                footprintFadeTime
+            );
         }
         else
         {
@@ -661,15 +752,31 @@ public class FootprintDecalSpawner : MonoBehaviour
             ScreenSpaceDecalProjector decal = Instantiate(footprintPrefab, spawnPosition, spawnRotation);
 
             decal.decalTexture = footTexture;
+
+            decal.decalNormalTexture = footNormalTexture;
+            decal.normalStrength = footprintNormalStrength;
+
+            decal.decalHeightTexture = footHeightTexture;
+            decal.heightGround = footprintHeightGround;
+            decal.heightContrast = footprintHeightContrast;
+            decal.invertHeight = footprintInvertHeight;
+            decal.parallaxStrength = footprintParallaxStrength;
+            decal.pomMinSteps = footprintPOMMinSteps;
+            decal.pomMaxSteps = Mathf.Max(footprintPOMMinSteps, footprintPOMMaxSteps);
+            
+            decal.useBaseRGB = useBaseRGB;
+            decal.ambientStrength = ambientStrength;
+            decal.diffuseStrength = diffuseStrength;
+            decal.alphaFromPOM = alphaFromPOM;
+            decal.debugView = debugView;
+
             decal.size = currentFootprintSize;
             decal.pivot = pivot;
             decal.opacity = footprintOpacity;
             decal.edgeFade = footprintEdgeFade;
-            decal.decalNormalTexture = footNormalTexture;
-            decal.normalStrength = footprintNormalStrength;
 
-            //协程管理，脚印随时间淡出  
-            StartCoroutine(FadeAndDestroyFootprint(decal,footprintOpacity));
+            // 协程管理，脚印随时间淡出
+            StartCoroutine(FadeAndDestroyFootprint(decal, footprintOpacity));
         }
         
         
@@ -994,11 +1101,11 @@ public class FootprintDecalSpawner : MonoBehaviour
     /// </summary>
     private void DrawDebugLabel(Vector3 position, string text)
     {
-    #if UNITY_EDITOR
-            if (!showDebugLabels)
-                return;
+        #if UNITY_EDITOR
+                if (!showDebugLabels)
+                    return;
 
-            Handles.Label(position + Vector3.up * debugLabelHeight, text);
-    #endif
+                Handles.Label(position + Vector3.up * debugLabelHeight, text);
+        #endif
     }
 }
